@@ -1,5 +1,6 @@
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
+from pathlib import Path
 import regex as re
 from tqdm import tqdm
 import time
@@ -129,8 +130,9 @@ def train_bpe(
 
 
 if __name__ == "__main__":
+    data_dir = Path(__file__).resolve().parent / "data"
     vocab, merges = train_bpe(
-        '/Users/nikhil/cs336/assignment1-basics/cs336_basics/data/TinyStoriesV2-GPT4-train.txt',
+        str(data_dir / "TinyStoriesV2-GPT4-train.txt"),
         500,
         ['<|endoftext|>'],
         num_workers=100,
