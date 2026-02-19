@@ -1,0 +1,5 @@
+# Data directories (skip large datasets)
+**/data/
+
+# pytest cache at root level
+.pytest_cache/
