@@ -135,7 +135,7 @@ if __name__ == "__main__":
         str(data_dir / "TinyStoriesV2-GPT4-train.txt"),
         500,
         ['<|endoftext|>'],
-        num_workers=100,
+        num_workers=10,
     )
     breakpoint()
 
