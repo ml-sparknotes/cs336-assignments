@@ -6,7 +6,10 @@ from tqdm import tqdm
 import time
 from collections import Counter
 
-PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+try:
+    from cs336_basics.bpe_workers import word_count_from_document, word_count_from_document_batch
+except ModuleNotFoundError:
+    from bpe_workers import word_count_from_document, word_count_from_document_batch
 
 
 def contains_subtuple(t, sub):
@@ -49,17 +52,6 @@ def replace_pair(t: tuple[int, ...], pair: tuple[int, int], new_val: int) -> tup
     return tuple(result)
 
 
-def word_count_from_document(document):
-    words = Counter()
-    doc_words = re.finditer(PAT, document)
-    for word in doc_words:
-        token_seq = []
-        for byte in word.group().encode("utf-8"):
-            token_seq.append(byte)
-        words[tuple(token_seq)] += 1
-    return words
-
-
 def populate_words(input_path: str, special_tokens: list[str], reverse_vocab: dict[bytes, int], num_workers: int | None = None) -> dict[tuple[int], int]:
     # 1. Split documents by doc special tokens.
     print("Reading dataset from file")
@@ -73,8 +65,10 @@ def populate_words(input_path: str, special_tokens: list[str], reverse_vocab: di
     # 2. For each document, apply the regex to break the document into words
     words = Counter()
     if num_workers and num_workers > 1:
+        batch_size = max(1, len(documents) // num_workers)
+        document_batches = [documents[i:i + batch_size] for i in range(0, len(documents), batch_size)]
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
-            for wc in tqdm(executor.map(word_count_from_document, documents), total=len(documents), desc="Processing documents"):
+            for wc in executor.map(word_count_from_document_batch, document_batches):
                 words.update(wc)
     else:
         for document in documents:
@@ -104,38 +98,50 @@ def train_bpe(
     end = time.time()
     print(f"Time taken to populate words: {end - start} seconds")
 
-    while len(vocab) < vocab_size:
-        token_pair_count: dict[tuple[int, int], int] = defaultdict(int)
-        # find the counts of all consecutive token pairs
-        for word in words:
-            if len(word) == 1:
-                continue
-            for idx, token_id in enumerate(word):
-                if idx < len(word)-1:
-                    token_pair_count[word[idx], word[idx+1]] += words[word]
-        merge_candidate = max(token_pair_count, key=lambda k: (token_pair_count[k], (vocab[k[0]], vocab[k[1]])))
-        new_token_id = len(vocab)
-        vocab[new_token_id] = vocab[merge_candidate[0]] + vocab[merge_candidate[1]]
-        merges.append((vocab[merge_candidate[0]], vocab[merge_candidate[1]]))
-        # update words dict so that it takes the latest merge into account
-        words_to_update = []
-        for word in words:
-            if contains_subtuple(word, (merge_candidate[0], merge_candidate[1])):
-                words_to_update.append(word)
-        for word in words_to_update:
-            new_word = replace_pair(word, (merge_candidate[0], merge_candidate[1]), new_token_id)
-            words[new_word] = words[word]
-            del words[word]
+    with tqdm(total=max(0, vocab_size - len(vocab)), desc="Training merges") as pbar:
+        while len(vocab) < vocab_size:
+            token_pair_count: dict[tuple[int, int], int] = defaultdict(int)
+            # find the counts of all consecutive token pairs
+            for word in words:
+                if len(word) == 1:
+                    continue
+                for idx, token_id in enumerate(word):
+                    if idx < len(word)-1:
+                        token_pair_count[word[idx], word[idx+1]] += words[word]
+            merge_candidate = max(token_pair_count, key=lambda k: (token_pair_count[k], (vocab[k[0]], vocab[k[1]])))
+            new_token_id = len(vocab)
+            vocab[new_token_id] = vocab[merge_candidate[0]] + vocab[merge_candidate[1]]
+            merges.append((vocab[merge_candidate[0]], vocab[merge_candidate[1]]))
+            # update words dict so that it takes the latest merge into account
+            words_to_update = []
+            for word in words:
+                if contains_subtuple(word, (merge_candidate[0], merge_candidate[1])):
+                    words_to_update.append(word)
+            for word in words_to_update:
+                new_word = replace_pair(word, (merge_candidate[0], merge_candidate[1]), new_token_id)
+                words[new_word] = words[word]
+                del words[word]
+            pbar.update(1)
     return vocab, merges
+
+
+def serialize_vocab_merges(vocab: dict[int, bytes], merges: list[tuple[bytes, bytes]], output_prefix: str) -> tuple[str, str]:
+    with open(output_prefix.with_name(output_prefix.name + "-vocab.txt"), 'w', encoding='utf-8') as f:
+        for token_id, token in vocab.items():
+            f.write(f"{token_id},{token}\n")
+    with open(output_prefix.with_name(output_prefix.name + "-merges.txt"), 'w', encoding='utf-8') as f:
+        for merge in merges:
+            f.write(f"{merge[0]}\n")
+            f.write(f"{merge[1]}\n")
 
 
 if __name__ == "__main__":
     data_dir = Path(__file__).resolve().parent / "data"
     vocab, merges = train_bpe(
         str(data_dir / "TinyStoriesV2-GPT4-train.txt"),
-        500,
+        1000,
         ['<|endoftext|>'],
-        num_workers=2,
+        num_workers=20,
     )
-    breakpoint()
 
+    serialize_vocab_merges(vocab, merges, data_dir / "TinyStoriesV2-GPT4")

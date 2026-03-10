@@ -19,6 +19,9 @@ dependencies = [
     "tqdm>=4.67.1",
     "wandb>=0.19.7",
     "ty>=0.0.1a16",
+    "py-spy>=0.4.1",
+    "memory-profiler>=0.61.0",
+    "matplotlib>=3.10.8",
 ]
 
 [build-system]
