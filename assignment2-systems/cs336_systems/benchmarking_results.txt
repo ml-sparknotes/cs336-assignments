@@ -1,0 +1,81 @@
+===========
+WITH WARMUP
+===========
+
+root@f5ba15aacb6f:~/cs336-assignments/assignment2-systems# uv run python -m cs336_systems.benchmarking --sweep --warm-up 5 --num-samples 10 --mode forward
+d_model | d_ff  | num_layers | num_heads | vocab_size | batch_size | context_length | mean_ms | std_ms
+--------+-------+------------+-----------+------------+------------+----------------+---------+-------
+768     | 3072  | 12         | 12        | 10000      | 4          | 512            | 16.367  | 0.050 
+1024    | 4096  | 24         | 16        | 10000      | 4          | 512            | 47.113  | 0.070 
+1280    | 5120  | 36         | 20        | 10000      | 4          | 512            | 106.090 | 0.036 
+2560    | 10240 | 32         | 32        | 10000      | 4          | 512            | 293.170 | 0.373 
+4608    | 12288 | 50         | 36        | 10000      | 4          | 512            | 946.245 | 0.468 
+
+root@f5ba15aacb6f:~/cs336-assignments/assignment2-systems# uv run python -m cs336_systems.benchmarking --sweep --warm-up 5 --num-samples 10 --mode forward-backward
+d_model | d_ff  | num_layers | num_heads | vocab_size | batch_size | context_length | mean_ms  | std_ms
+--------+-------+------------+-----------+------------+------------+----------------+----------+-------
+768     | 3072  | 12         | 12        | 10000      | 4          | 512            | 48.440   | 0.024 
+1024    | 4096  | 24         | 16        | 10000      | 4          | 512            | 139.810  | 0.518 
+1280    | 5120  | 36         | 20        | 10000      | 4          | 512            | 313.767  | 0.038 
+2560    | 10240 | 32         | 32        | 10000      | 4          | 512            | 863.072  | 0.278 
+4608    | 12288 | 50         | 36        | 10000      | 4          | 512            | 2815.607 | 0.731 
+
+=============================
+WITH WARMUP AND BF16 AUTOCAST
+=============================
+
+root@e98dbd5cd18b:~/cs336-assignments/assignment2-systems# uv run python -m cs336_systems.benchmarking --sweep --mode forward-backward --warm-up 5 --num-samples 5 --mixed-precision
+model  | d_model | d_ff  | num_layers | num_heads | vocab_size | batch_size | context_length | mean_ms | std_ms
+-------+---------+-------+------------+-----------+------------+------------+----------------+---------+-------
+tiny   | 128     | 512   | 2          | 4         | 2000       | 4          | 128            | 5.567   | 0.516 
+small  | 768     | 3072  | 12         | 12        | 10000      | 4          | 512            | 27.565  | 0.731 
+medium | 1024    | 4096  | 24         | 16        | 10000      | 4          | 512            | 48.630  | 0.321 
+large  | 1280    | 5120  | 36         | 20        | 10000      | 4          | 512            | 88.170  | 0.250 
+xl     | 2560    | 10240 | 32         | 32        | 10000      | 4          | 512            | 151.398 | 0.090 
+10B    | 4608    | 12288 | 50         | 36        | 10000      | 4          | 512            | 389.896 | 0.155 
+
+
+==============
+WITHOUT WARMUP
+==============
+
+root@f8658f59ee39:~/cs336-assignments/assignment2-systems# uv run python -m cs336_systems.benchmarking --sweep --warm-up 0 --num-samples 10 --mode forward
+d_model | d_ff  | num_layers | num_heads | vocab_size | batch_size | context_length | mean_ms | std_ms
+--------+-------+------------+-----------+------------+------------+----------------+---------+-------
+768     | 3072  | 12         | 12        | 10000      | 4          | 512            | 32.809  | 51.730
+1024    | 4096  | 24         | 16        | 10000      | 4          | 512            | 47.349  | 0.788 
+1280    | 5120  | 36         | 20        | 10000      | 4          | 512            | 106.297 | 0.499 
+2560    | 10240 | 32         | 32        | 10000      | 4          | 512            | 293.113 | 0.430 
+4608    | 12288 | 50         | 36        | 10000      | 4          | 512            | 946.600 | 0.513 
+
+root@f8658f59ee39:~/cs336-assignments/assignment2-systems# uv run python -m cs336_systems.benchmarking --sweep --warm-up 0 --num-samples 10 --mode forward-backward
+d_model | d_ff  | num_layers | num_heads | vocab_size | batch_size | context_length | mean_ms  | std_ms
+--------+-------+------------+-----------+------------+------------+----------------+----------+-------
+768     | 3072  | 12         | 12        | 10000      | 4          | 512            | 69.521   | 66.611
+1024    | 4096  | 24         | 16        | 10000      | 4          | 512            | 139.675  | 0.361 
+1280    | 5120  | 36         | 20        | 10000      | 4          | 512            | 314.095  | 0.351 
+2560    | 10240 | 32         | 32        | 10000      | 4          | 512            | 862.962  | 0.356 
+4608    | 12288 | 50         | 36        | 10000      | 4          | 512            | 2816.551 | 0.503 
+
+==============
+2-STEP WARMUP
+==============
+
+
+root@f8658f59ee39:~/cs336-assignments/assignment2-systems# uv run python -m cs336_systems.benchmarking --sweep --warm-up 2 --num-samples 10 --mode forward
+d_model | d_ff  | num_layers | num_heads | vocab_size | batch_size | context_length | mean_ms | std_ms
+--------+-------+------------+-----------+------------+------------+----------------+---------+-------
+768     | 3072  | 12         | 12        | 10000      | 4          | 512            | 16.381  | 0.026 
+1024    | 4096  | 24         | 16        | 10000      | 4          | 512            | 47.082  | 0.089 
+1280    | 5120  | 36         | 20        | 10000      | 4          | 512            | 106.064 | 0.030 
+2560    | 10240 | 32         | 32        | 10000      | 4          | 512            | 293.012 | 0.236 
+4608    | 12288 | 50         | 36        | 10000      | 4          | 512            | 946.283 | 0.405 
+
+root@f8658f59ee39:~/cs336-assignments/assignment2-systems# uv run python -m cs336_systems.benchmarking --sweep --warm-up 2 --num-samples 10 --mode forward-backward
+d_model | d_ff  | num_layers | num_heads | vocab_size | batch_size | context_length | mean_ms  | std_ms
+--------+-------+------------+-----------+------------+------------+----------------+----------+-------
+768     | 3072  | 12         | 12        | 10000      | 4          | 512            | 48.449   | 0.013 
+1024    | 4096  | 24         | 16        | 10000      | 4          | 512            | 139.544  | 0.042 
+1280    | 5120  | 36         | 20        | 10000      | 4          | 512            | 313.922  | 0.333 
+2560    | 10240 | 32         | 32        | 10000      | 4          | 512            | 862.479  | 0.190 
+4608    | 12288 | 50         | 36        | 10000      | 4          | 512            | 2815.913 | 0.486 

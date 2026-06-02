@@ -1,0 +1,53 @@
+# --- Data ---
+train_data: null
+val_data: null
+vocab_file: null
+merges_file: null
+data_dtype: uint16
+
+# --- Model ---
+vocab_size: null
+d_model: 512
+num_heads: 8
+num_layers: 6
+d_ff: null
+context_length: 256
+rope_theta: 10000.0
+
+# --- Training ---
+batch_size: 32
+gradient_accumulation_steps: 1
+max_iters: 10000
+lr_max: 1.0e-3
+lr_min: 1.0e-5
+warmup_iters: 500
+cosine_cycle_iters: null
+weight_decay: 0.01
+beta1: 0.9
+beta2: 0.999
+adamw_eps: 1.0e-8
+grad_clip: 1.0
+
+# --- Logging / Eval ---
+log_interval: 10
+eval_interval: 250
+eval_iters: 20
+checkpoint_interval: 1000
+checkpoint_dir: checkpoints
+generate_interval: 500
+generate_max_tokens: 128
+generate_temperature: 0.8
+generate_top_p: 0.95
+generate_prompt: "Once upon a time"
+
+# --- W&B ---
+wandb_project: cs336-lm
+wandb_run_name: null
+wandb_entity: null
+wandb_disabled: false
+
+# --- System ---
+device: null
+dtype: float32
+seed: 42
+resume: null
